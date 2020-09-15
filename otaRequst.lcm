@@ -1,0 +1,11 @@
+package exlcm;
+
+struct OTA_Requst_t
+{
+    int64_t  timestamp;
+    int8_t   module_update_requst;    /* 0：无动作 1:有请求 */
+    int8_t   module_update_respond;   /* 0:无动作 1：成功应答 2：应答失败  */
+    int8_t   client_update_requst;    /* 0：无动作 1:有请求 */
+    int8_t   client_update_respond;   /* 0:无动作 1：成功应答 2：应答失败 3:最新版*/
+    int8_t   Update_Finished;         /* 0:无动作 1：更新完成 2：更新失败 */
+}
