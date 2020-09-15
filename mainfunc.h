@@ -38,7 +38,7 @@ private slots:
 
 private:
     int timercount;
-    int poweron_flag;
+    int poweron_flag=0;
     QTimer   lcm_spin;
     lcm::LCM ota_lcm_pub;
     lcm::LCM ota_lcm_sub;

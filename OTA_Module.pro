@@ -6,7 +6,6 @@ LIBS        += /usr/local/lib/liblcm*.so*
 LIBS        += -lcurl
 LIBS        += -lcrypto
 
-
 CONFIG += c++11 console
 CONFIG -= app_bundle
 

@@ -26,7 +26,7 @@ mainfunc::mainfunc()
     ota_lcm_sub.subscribe("OTA_RESPONED",&lcm_subHandle::handleMessage, &lcm_subhandle);
     connect(&lcm_subhandle,SIGNAL(sub_get(uint8_t)),this,SLOT(client_requst_respond(uint8_t)));
     connect(&lcm_spin, SIGNAL(timeout()), this, SLOT(update_lcmres()));
-    lcm_spin.start(2000);
+    lcm_spin.start(1000);
 }
 
 //定时检测与发布请求
