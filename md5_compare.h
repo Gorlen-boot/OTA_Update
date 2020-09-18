@@ -50,7 +50,11 @@ QByteArray getFileMd5(QString filePath)
 QByteArray getFileMd5_2(QString filePath)
 {
    QFile theFile(filePath);
-   theFile.open(QIODevice::ReadOnly);
+   if(!theFile.open(QIODevice::ReadOnly))
+   {
+       qDebug() << "Get MD5 failed!"<<endl;
+       return 0;
+   }
    QByteArray ba = QCryptographicHash::hash(theFile.readAll(), QCryptographicHash::Md5);
    theFile.close();
    return ba;
