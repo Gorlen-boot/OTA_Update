@@ -9,10 +9,12 @@ mainfunc::mainfunc()
     poweron_flag=1;
     if(!ota_lcm_pub.good())
     {
+        qDebug("********************分隔符*********************");
         qDebug("发布进程通讯异常!");
     }
     else
     {
+        qDebug("********************分隔符*********************");
         qDebug("发布进程通讯正常!");
     }
     if(!ota_lcm_sub.good())
@@ -62,17 +64,20 @@ void mainfunc::client_requst_respond(uint8_t res)
         uint8_t res;
         exlcm::OTA_Requst_t reqData;
         res=update_check();
-        if(res==0) //有可用更新，请求更新
+        if(res==0)
         { 
             reqData.module_update_requst=1;
+            qDebug()<<"有可用更新，等待客户端响应！";
         }
         else if(res==1 || res==2) //更新失败
         {  
             reqData.module_update_respond=2;
+            qDebug()<<"更新失败！";
         }
-        else if(res==3)  //目前是最新版
+        else if(res==3)
         {  
             reqData.module_update_respond=3;
+            qDebug()<<"最新版程序，不需要更新！";
         }
         ota_lcm_pub.publish("OTA_REQUEST",&reqData);
     }
@@ -91,10 +96,15 @@ void mainfunc::update_lcmres()
             exlcm::OTA_Requst_t reqData;
             reqData.module_update_requst=1;
             ota_lcm_pub.publish("OTA_REQUEST",&reqData);
+            qDebug()<<"有可用更新，等待客户端响应！";
         }
         else if(res==2)
         {
             qDebug("自动更新，json文件解析失败！");
+        }
+        else if(res==3)
+        {
+            qDebug("最新版程序，不需要更新！");
         }
         timercount=0;
         poweron_flag=0;
@@ -112,20 +122,20 @@ uint8_t mainfunc::update_check(void)
     // 根据返回结果，提示用户下载成功与否
     if(CURLE_OK == res)
     {
-        qDebug("great! download %s as %s succesfully\n",url,name);
+        qDebug("服务器升级文档地址: %s 名称: %s 下载完成!",url,name);
     }
     else
     {
-        qDebug("sorry:cannot download %s.\n",url);
-         return 1;
+        qDebug("服务器升级文档地址: %s 下载失败!",url);
+        return 1;
     }
 
     local_json.setFileName("./config/local_update.json");
     server_json.setFileName("./remote_update.json");
     if((!local_json.open(QIODevice::ReadOnly)) || (!server_json.open(QIODevice::ReadOnly)))
     {
-        qDebug("read json file failed");
-        return 2;  //更新失败
+        qDebug("服务器升级文档打开失败");
+        return 2;
     }
     local_ba  = local_json.readAll();
     remote_ba = server_json.readAll();
@@ -133,7 +143,7 @@ uint8_t mainfunc::update_check(void)
     server_json.close();
     QJsonParseError e_local,e_remote;
     QJsonDocument jdoc_local= QJsonDocument::fromJson(local_ba,&e_local);
-    QJsonDocument jdoc_remote= QJsonDocument::fromJson(local_ba,&e_remote);
+    QJsonDocument jdoc_remote= QJsonDocument::fromJson(remote_ba,&e_remote);
     if((e_local.error==QJsonParseError::NoError && !jdoc_local.isNull()) ||     \
             (e_remote.error==QJsonParseError::NoError && !jdoc_remote.isNull()))
     {
@@ -172,6 +182,7 @@ uint8_t mainfunc::update_check(void)
     }
     else
     {
+         qDebug("升级策略解析失败！");
          return 2;
     }
 }
@@ -191,7 +202,7 @@ int mainfunc::start_update()
 
     if((!local_json.open(QIODevice::ReadOnly)) || (!server_json.open(QIODevice::ReadOnly)))
     {
-        qDebug("read json file failed");
+        qDebug("读升级文档失败!");
         return 2;  //更新失败
     }
     local_ba  = local_json.readAll();
@@ -262,19 +273,19 @@ int mainfunc::start_update()
                     genxin_flag=new_download(ba.data(),file_name);
                     if(genxin_flag!=0)
                     {
-                         qDebug()<<" 更新过程下载失败！FileName:"<<arrobj_remote.value("FileName").toString();
-                         return 1;
+                        qDebug()<<" 更新文件下载失败！FileName:"<<arrobj_remote.value("FileName").toString();
+                        return 1;
                     }
                     genxin_flag=file_crc(file_name,md5str);
                     if(genxin_flag!=0)
                     {
-                        qDebug()<<"文件校验失败!";
+                        qDebug()<<"更新文件校验失败!"<<arrobj_remote.value("FileName").toString();
                         return 3;
                     }
                     genxin_flag=new_install(file_name,install_path);
                     if(genxin_flag!=0)
                     {
-                        qDebug()<<"安装失败!";
+                        qDebug()<<"更新文件安装失败!"<<arrobj_remote.value("FileName").toString();
                         return 3;
                     }
                 }
@@ -294,18 +305,15 @@ int mainfunc::new_download(char* url , QString &filename)
     char name[64] = "";
     mhttp_download.getfilename(url,name);
     CURLcode res = mhttp_download.download(url,name);
-    // 根据返回结果，提示用户下载成功与否
-    if(CURLE_OK==res)
+    if(CURLE_OK==res)  // 根据返回结果，提示用户下载成功与否
     {
-        qDebug("great! download %s as %s succesfully\n",url,name);
+       filename=QDir::currentPath()+"/"+QString(name);
+       return 0;
     }
     else
     {
-        qDebug("sorry:cannot download %s.\n",url);
          return 1;
     }
-    filename=QDir::currentPath()+"/"+QString(name);
-    return 0;
 }
 
 int mainfunc::new_install(QString filepath,QString  install_path)
@@ -327,14 +335,15 @@ int mainfunc::file_crc(QString file_path,QString remote_md5)
     unsigned char* tt=nullptr;
     qDebug()<<"start md5sum,file_path ="<<file_path<<endl;
     md5_ba=getFileMd5(file_path);
-    tt=reinterpret_cast<unsigned char*>(md5_ba.data());      //(unsigned char*)md5_ba.data();
+    tt=reinterpret_cast<unsigned char*>(md5_ba.data());
     for(int i=0;i<md5_ba.size();i++)
     {
        local_md5 += QString("%1").arg(tt[i],2,16,QLatin1Char('0'));
     }
-    qDebug()<<"local  md5 :"<<local_md5;
-    qDebug()<<"remote md5 :"<<remote_md5;
-    if(remote_md5.compare(local_md5)!=0) return 1;
+    qDebug()<<"本地  md5 :"<<local_md5;
+    qDebug()<<"服务器 md5 :"<<remote_md5;
+    if(remote_md5.compare(local_md5)!=0)
+        return 1;
     else
         return 0;
 }
@@ -402,7 +411,7 @@ int mainfunc::old_restore(void)
 int mainfunc::update_json(void)
 {
     int res;
-    qDebug()<<"更新json文件！"<<endl;
+    qDebug()<<"更新升级文档！"<<endl;
     res=system("rm -f ./config/local_update.json");
     res=system("mv -f ./remote_update.json ./config/local_update.json");
     return res;

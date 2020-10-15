@@ -24,7 +24,8 @@ SOURCES += \
         global.cpp \
         lcm_subhandle.cpp \
         main.cpp \
-        mainfunc.cpp
+        mainfunc.cpp \
+        ota_log.cpp
 
 # Default rules for deployment.
 qnx: target.path = /tmp/$${TARGET}/bin
@@ -37,4 +38,5 @@ HEADERS += \
     lcm_subhandle.h \
     mainfunc.h \
     md5_compare.h \
-    ota_download.h
+    ota_download.h \
+    ota_log.h

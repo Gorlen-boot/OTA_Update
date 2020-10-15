@@ -55,12 +55,14 @@ OBJECTS_DIR   = ./
 SOURCES       = global.cpp \
 		lcm_subhandle.cpp \
 		main.cpp \
-		mainfunc.cpp moc_lcm_subhandle.cpp \
+		mainfunc.cpp \
+		ota_log.cpp moc_lcm_subhandle.cpp \
 		moc_mainfunc.cpp
 OBJECTS       = global.o \
 		lcm_subhandle.o \
 		main.o \
 		mainfunc.o \
+		ota_log.o \
 		moc_lcm_subhandle.o \
 		moc_mainfunc.o
 DIST          = /opt/Qt5.12.5/5.12.5/gcc_64/mkspecs/features/spec_pre.prf \
@@ -261,10 +263,12 @@ DIST          = /opt/Qt5.12.5/5.12.5/gcc_64/mkspecs/features/spec_pre.prf \
 		lcm_subhandle.h \
 		mainfunc.h \
 		md5_compare.h \
-		ota_download.h global.cpp \
+		ota_download.h \
+		ota_log.h global.cpp \
 		lcm_subhandle.cpp \
 		main.cpp \
-		mainfunc.cpp
+		mainfunc.cpp \
+		ota_log.cpp
 QMAKE_TARGET  = OTA_Module
 DESTDIR       = 
 TARGET        = OTA_Module
@@ -680,8 +684,8 @@ distdir: FORCE
 	@test -d $(DISTDIR) || mkdir -p $(DISTDIR)
 	$(COPY_FILE) --parents $(DIST) $(DISTDIR)/
 	$(COPY_FILE) --parents /opt/Qt5.12.5/5.12.5/gcc_64/mkspecs/features/data/dummy.cpp $(DISTDIR)/
-	$(COPY_FILE) --parents exlcm/OTA_Requst_t.hpp global.h lcm_subhandle.h mainfunc.h md5_compare.h ota_download.h $(DISTDIR)/
-	$(COPY_FILE) --parents global.cpp lcm_subhandle.cpp main.cpp mainfunc.cpp $(DISTDIR)/
+	$(COPY_FILE) --parents exlcm/OTA_Requst_t.hpp global.h lcm_subhandle.h mainfunc.h md5_compare.h ota_download.h ota_log.h $(DISTDIR)/
+	$(COPY_FILE) --parents global.cpp lcm_subhandle.cpp main.cpp mainfunc.cpp ota_log.cpp $(DISTDIR)/
 
 
 clean: compiler_clean 
@@ -1031,7 +1035,12 @@ main.o: main.cpp /opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QCoreApplication \
 		lcm_subhandle.h \
 		exlcm/OTA_Requst_t.hpp \
 		global.h \
-		ota_download.h
+		ota_download.h \
+		ota_log.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QMutex \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QDateTime \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qdatetime.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QTextStream
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o main.o main.cpp
 
 mainfunc.o: mainfunc.cpp mainfunc.h \
@@ -1129,6 +1138,80 @@ mainfunc.o: mainfunc.cpp mainfunc.h \
 		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QCryptographicHash \
 		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qcryptographichash.h
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o mainfunc.o mainfunc.cpp
+
+ota_log.o: ota_log.cpp ota_log.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QObject \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qobject.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qobjectdefs.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qnamespace.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qglobal.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qconfig-bootstrapped.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qconfig.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qtcore-config.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qsystemdetection.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qprocessordetection.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qcompilerdetection.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qtypeinfo.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qsysinfo.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qlogging.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qflags.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qatomic.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qbasicatomic.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qatomic_bootstrap.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qgenericatomic.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qatomic_cxx11.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qatomic_msvc.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qglobalstatic.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qmutex.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qnumeric.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qversiontagging.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qobjectdefs_impl.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qstring.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qchar.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qbytearray.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qrefcount.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qarraydata.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qstringliteral.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qstringalgorithms.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qstringview.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qstringbuilder.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qlist.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qalgorithms.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qiterator.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qhashfunctions.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qpair.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qbytearraylist.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qstringlist.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qregexp.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qstringmatcher.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qcoreevent.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qscopedpointer.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qmetatype.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qvarlengtharray.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qcontainerfwd.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qobject_impl.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QMutex \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QDateTime \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qdatetime.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qshareddata.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qhash.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QFile \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qfile.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qfiledevice.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qiodevice.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/QTextStream \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qtextstream.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qlocale.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qvariant.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qmap.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qdebug.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qvector.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qpoint.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qset.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qcontiguouscache.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qsharedpointer.h \
+		/opt/Qt5.12.5/5.12.5/gcc_64/include/QtCore/qsharedpointer_impl.h
+	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o ota_log.o ota_log.cpp
 
 moc_lcm_subhandle.o: moc_lcm_subhandle.cpp 
 	$(CXX) -c $(CXXFLAGS) $(INCPATH) -o moc_lcm_subhandle.o moc_lcm_subhandle.cpp
