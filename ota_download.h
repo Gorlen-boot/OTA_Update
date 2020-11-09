@@ -45,10 +45,11 @@ public:
                //以二进制可写方式打开文件，保存下载得到的数据
                fp = fopen(out,"wb");
                //根据libcurl的使用方法，设定下载的URL，写入函数以及写入的文件
+               curl_easy_setopt(curl, CURLOPT_VERBOSE, 0);
                curl_easy_setopt(curl,CURLOPT_URL,url);
                curl_easy_setopt(curl,CURLOPT_WRITEFUNCTION,write_data);
                curl_easy_setopt(curl,CURLOPT_WRITEDATA,fp);
-               curl_easy_setopt(curl, CURLOPT_VERBOSE, 1L);
+               //curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1);
                //curl_easy_setopt(curl, CURLOPT_USERPWD, "SUREN:SUREN");
                //调用curl_easy_perform（）函数执行下载操作
                res = curl_easy_perform(curl);
