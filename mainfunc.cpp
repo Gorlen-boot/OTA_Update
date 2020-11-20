@@ -1,7 +1,8 @@
 #include "mainfunc.h"
 #include "md5_compare.h"
+#include <unistd.h>
 
-#define HZ_UPDATE (3600*24)
+#define HZ_UPDATE (3600*12)
 
 mainfunc::mainfunc()
 {
@@ -70,7 +71,7 @@ void mainfunc::client_requst_respond(uint8_t res)
             qDebug()<<"有可用更新，等待客户端响应！";
         }
         else if(res==1 || res==2) //更新失败
-        {  
+        {
             reqData.module_update_respond=2;
             qDebug()<<"更新失败！";
         }
@@ -115,23 +116,18 @@ uint8_t mainfunc::update_check(void)
 {
     QByteArray local_ba;
     QByteArray remote_ba;
-    char url[] = "http://218.240.159.78/v2x_server/v2x_server_json/remote_update.json";
-    char name[64] = "";
-    mhttp_download.getfilename(url,name);
-    CURLcode res = mhttp_download.download(url,name);
-    // 根据返回结果，提示用户下载成功与否
-    if(CURLE_OK == res)
-    {
-        qDebug("服务器升级文档地址: %s 名称: %s 下载完成!",url,name);
-    }
-    else
-    {
-        qDebug("服务器升级文档地址: %s 下载失败!",url);
-        return 1;
-    }
+    QString m_url = "http://218.240.159.78/v2x_server/v2x_server_json/remote_update.json";
+
+    mhttp_download.getFile(m_url,"./");
+    if(!Global::DownloadOK) return 2;
 
     local_json.setFileName("./config/local_update.json");
     server_json.setFileName("./remote_update.json");
+    if(!local_json.exists())
+    {
+        system("cp ./config/local_init.json ./config/local_update.json");
+        return 0;
+    }
     if((!local_json.open(QIODevice::ReadOnly)) || (!server_json.open(QIODevice::ReadOnly)))
     {
         qDebug("服务器升级文档打开失败");
@@ -151,6 +147,7 @@ uint8_t mainfunc::update_check(void)
         QJsonObject object_remote=jdoc_remote.object();
         QJsonArray  arr_local = object_local.value("UpdateFile").toArray();
         QJsonArray  arr_remote = object_remote.value("UpdateFile").toArray();
+        qDebug()<<arr_local.size()<<" "<<arr_remote.size();
         if(arr_local.size() != arr_remote.size()) return 0;
         else
         {
@@ -234,12 +231,10 @@ int mainfunc::start_update()
                         if(arrobj_local.value("Version") != arrobj_remote.value("Version"))
                         {
                             int genxin_flag;
-                            QByteArray ba;
                             install_path=arrobj_remote.value("Target").toString();
-                            md5str=arrobj_remote.value("md5sum").toString();
+                            md5str=arrobj_remote.value("MD5SUM").toString();
                             download_path=arrobj_remote.value("LocalFilePath").toString();
-                            ba.append(download_path);
-                            genxin_flag=new_download(ba.data(),file_name);
+                            genxin_flag=new_download(download_path,file_name);
                             if(genxin_flag!=0)
                             {
                                 qDebug()<<"更新过程下载失败! FileName:"<<arrobj_remote.value("FileName").toString();
@@ -267,7 +262,7 @@ int mainfunc::start_update()
                     int genxin_flag;
                     QByteArray ba;
                     install_path=arrobj_remote.value("Target").toString();
-                    md5str=arrobj_remote.value("md5sum").toString();
+                    md5str=arrobj_remote.value("MD5SUM").toString();
                     download_path=arrobj_remote.value("LocalFilePath").toString();
                     ba.append(download_path);
                     genxin_flag=new_download(ba.data(),file_name);
@@ -300,31 +295,44 @@ int mainfunc::start_update()
 }
 
 //新文件下载和校验
-int mainfunc::new_download(char* url , QString &filename)
+int mainfunc::new_download(QString url , QString &filename)
 {
-    char name[64] = "";
-    mhttp_download.getfilename(url,name);
-    CURLcode res = mhttp_download.download(url,name);
-    if(CURLE_OK==res)  // 根据返回结果，提示用户下载成功与否
-    {
-       filename=QDir::currentPath()+"/"+QString(name);
-       return 0;
-    }
-    else
-    {
-         return 1;
-    }
+    int index=url.lastIndexOf('/');
+    filename = QDir::currentPath()+url.mid(index);
+    mhttp_download.getFile(url,"./");
+    if(!Global::DownloadOK) return 1;
+    return 0;
 }
 
 int mainfunc::new_install(QString filepath,QString  install_path)
 {
-    int res;
-    QString str;
-    str="mv -f "+filepath + " " + install_path;
-    QByteArray ba;
-    ba.append(str);
-    res=system(ba.data());
-    qDebug()<<"安装路径:"<<str<<endl;
+    int res=0;
+    bool ok = false;
+    int index = install_path.lastIndexOf('/');
+    QString path = install_path.mid(0,index);
+    QDir tem_path;
+    if(tem_path.mkpath(path))
+    {
+        if(QFile::exists(install_path))
+        {
+            QFile temff(install_path);
+            temff.remove();
+        }
+        ok = QFile::copy(filepath,install_path);
+        if(!ok)
+        {
+            res= -1;
+            qDebug()<<"文件拷贝失败!"<<endl;
+        }
+    }
+    else
+    {
+        res = -1;
+        qDebug()<<"路径创建失败!"<<endl;
+    }
+    QFile::remove(filepath);
+    usleep(1000);
+    qDebug()<<"安装路径:"<<path<<endl;
     return res;
 }
 
@@ -333,15 +341,14 @@ int mainfunc::file_crc(QString file_path,QString remote_md5)
     QByteArray md5_ba;
     QString local_md5;
     unsigned char* tt=nullptr;
-    qDebug()<<"start md5sum,file_path ="<<file_path<<endl;
     md5_ba=getFileMd5(file_path);
     tt=reinterpret_cast<unsigned char*>(md5_ba.data());
     for(int i=0;i<md5_ba.size();i++)
     {
        local_md5 += QString("%1").arg(tt[i],2,16,QLatin1Char('0'));
     }
-    qDebug()<<"本地  md5 :"<<local_md5;
-    qDebug()<<"服务器 md5 :"<<remote_md5;
+    qDebug()<<"本地端 md5:"<<local_md5;
+    qDebug()<<"服务器 md5:"<<remote_md5;
     if(remote_md5.compare(local_md5)!=0)
         return 1;
     else
@@ -352,9 +359,12 @@ int mainfunc::old_backup()
 {
     /* 方法一 备份运行目录下文件*/
     int res;
-    res=system("rm -rf /home/work_backup");
-    res=system("mkdir -p /home/work_backup");
-    res=system("cp -r /home/xxx_work/* /home/work_backup/");
+    res=system("rm -rf /home/lzj/PreCrashGUI_Backup");
+    usleep(1000);
+    res=system("mkdir -p /home/lzj/PreCrashGUI_Backup");
+    usleep(1000);
+    res=system("cp -rf /home/lzj/PreCrashGUI/* /home/lzj/PreCrashGUI_Backup/");
+    usleep(1000);
 
     /* 方法二 备份json文件下所有项 */
     /* res=system("rm -rf /home/work_backup");
@@ -403,8 +413,12 @@ int mainfunc::old_restore(void)
 {
     int res;
     qDebug()<<"开始恢复数据！"<<endl;
-    res=system("rm -rf /home/xxx_work_/*");
-    res=system("cp -r /home/work_backup/* /home/xxx_work_/");
+    res=system("rm -rf /home/lzj/PreCrashGUI");
+    usleep(1000);
+    res=system("mkdir -p /home/lzj/PreCrashGUI");
+    usleep(1000);
+    res=system("cp -rf /home/lzj/PreCrashGUI_Backup/* /home/lzj/PreCrashGUI/");
+    usleep(1000);
     return (res&0xFF);
 }
 
@@ -413,7 +427,23 @@ int mainfunc::update_json(void)
     int res;
     qDebug()<<"更新升级文档！"<<endl;
     res=system("rm -f ./config/local_update.json");
+    usleep(1000);
     res=system("mv -f ./remote_update.json ./config/local_update.json");
+    usleep(1000);
     return res;
 }
+
+int mainfunc::waitTimeout(void)
+{
+    timercount=0;
+    while(!Global::DownloadOK)
+    {
+        timercount++;
+        if(timercount>10000) return -1;
+        usleep(1000);
+    }
+    return 0;
+}
+
+
 
