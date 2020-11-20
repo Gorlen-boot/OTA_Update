@@ -7,6 +7,7 @@ public:
     Global();
     static bool New_OTA_requst;
     static bool New_OTA_respond;
+    static bool DownloadOK;
 };
 
 #endif // GLOBAL_H

@@ -22,6 +22,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
         global.cpp \
+        http_download.cpp \
         lcm_subhandle.cpp \
         main.cpp \
         mainfunc.cpp \
@@ -35,8 +36,8 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 HEADERS += \
     exlcm/OTA_Requst_t.hpp \
     global.h \
+    http_download.h \
     lcm_subhandle.h \
     mainfunc.h \
     md5_compare.h \
-    ota_download.h \
     ota_log.h

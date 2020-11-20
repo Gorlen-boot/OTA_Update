@@ -1,6 +1,6 @@
 #include "mainfunc.h"
 #include "md5_compare.h"
-#include "unistd.h"
+#include <unistd.h>
 
 #define HZ_UPDATE (3600*12)
 
@@ -116,23 +116,18 @@ uint8_t mainfunc::update_check(void)
 {
     QByteArray local_ba;
     QByteArray remote_ba;
-    char url[] = "http://218.240.159.78/v2x_server/v2x_server_json/remote_update.json";
-    char name[64] = "";
-    mhttp_download.getfilename(url,name);
-    CURLcode res = mhttp_download.download(url,name);
-    // 根据返回结果，提示用户下载成功与否
-    if(CURLE_OK == res)
-    {
-        qDebug("服务器升级文档地址: %s 名称: %s 下载完成!",url,name);
-    }
-    else
-    {
-        qDebug("服务器升级文档地址: %s 下载失败!",url);
-        return 1;
-    }
+    QString m_url = "http://218.240.159.78/v2x_server/v2x_server_json/remote_update.json";
+
+    mhttp_download.getFile(m_url,"./");
+    if(!Global::DownloadOK) return 2;
 
     local_json.setFileName("./config/local_update.json");
     server_json.setFileName("./remote_update.json");
+    if(!local_json.exists())
+    {
+        system("cp ./config/local_init.json ./config/local_update.json");
+        return 0;
+    }
     if((!local_json.open(QIODevice::ReadOnly)) || (!server_json.open(QIODevice::ReadOnly)))
     {
         qDebug("服务器升级文档打开失败");
@@ -152,6 +147,7 @@ uint8_t mainfunc::update_check(void)
         QJsonObject object_remote=jdoc_remote.object();
         QJsonArray  arr_local = object_local.value("UpdateFile").toArray();
         QJsonArray  arr_remote = object_remote.value("UpdateFile").toArray();
+        qDebug()<<arr_local.size()<<" "<<arr_remote.size();
         if(arr_local.size() != arr_remote.size()) return 0;
         else
         {
@@ -235,12 +231,10 @@ int mainfunc::start_update()
                         if(arrobj_local.value("Version") != arrobj_remote.value("Version"))
                         {
                             int genxin_flag;
-                            QByteArray ba;
                             install_path=arrobj_remote.value("Target").toString();
                             md5str=arrobj_remote.value("MD5SUM").toString();
                             download_path=arrobj_remote.value("LocalFilePath").toString();
-                            ba.append(download_path);
-                            genxin_flag=new_download(ba.data(),file_name);
+                            genxin_flag=new_download(download_path,file_name);
                             if(genxin_flag!=0)
                             {
                                 qDebug()<<"更新过程下载失败! FileName:"<<arrobj_remote.value("FileName").toString();
@@ -301,20 +295,13 @@ int mainfunc::start_update()
 }
 
 //新文件下载和校验
-int mainfunc::new_download(char* url , QString &filename)
+int mainfunc::new_download(QString url , QString &filename)
 {
-    char name[128] = "";
-    mhttp_download.getfilename(url,name);
-    CURLcode res = mhttp_download.download(url,name);
-    if(CURLE_OK==res)  // 根据返回结果，提示用户下载成功与否
-    {
-       filename=QDir::currentPath()+"/"+QString(name);
-       return 0;
-    }
-    else
-    {
-         return 1;
-    }
+    int index=url.lastIndexOf('/');
+    filename = QDir::currentPath()+url.mid(index);
+    mhttp_download.getFile(url,"./");
+    if(!Global::DownloadOK) return 1;
+    return 0;
 }
 
 int mainfunc::new_install(QString filepath,QString  install_path)
@@ -372,11 +359,11 @@ int mainfunc::old_backup()
 {
     /* 方法一 备份运行目录下文件*/
     int res;
-    res=system("rm -rf /home/huituo/v2x_server_json/work_backup");
+    res=system("rm -rf /home/lzj/PreCrashGUI_Backup");
     usleep(1000);
-    res=system("mkdir -p /home/huituo/v2x_server_json/work_backup");
+    res=system("mkdir -p /home/lzj/PreCrashGUI_Backup");
     usleep(1000);
-    res=system("cp -rf /home/huituo/v2x_server_json/qUI/* /home/huituo/v2x_server_json/work_backup/");
+    res=system("cp -rf /home/lzj/PreCrashGUI/* /home/lzj/PreCrashGUI_Backup/");
     usleep(1000);
 
     /* 方法二 备份json文件下所有项 */
@@ -426,11 +413,11 @@ int mainfunc::old_restore(void)
 {
     int res;
     qDebug()<<"开始恢复数据！"<<endl;
-    res=system("rm -rf /home/huituo/v2x_server_json/qUI");
+    res=system("rm -rf /home/lzj/PreCrashGUI");
     usleep(1000);
-    res=system("mkdir -p /home/huituo/v2x_server_json/qUI");
+    res=system("mkdir -p /home/lzj/PreCrashGUI");
     usleep(1000);
-    res=system("cp -rf /home/huituo/v2x_server_json/work_backup/* /home/huituo/v2x_server_json/qUI/");
+    res=system("cp -rf /home/lzj/PreCrashGUI_Backup/* /home/lzj/PreCrashGUI/");
     usleep(1000);
     return (res&0xFF);
 }
@@ -445,4 +432,18 @@ int mainfunc::update_json(void)
     usleep(1000);
     return res;
 }
+
+int mainfunc::waitTimeout(void)
+{
+    timercount=0;
+    while(!Global::DownloadOK)
+    {
+        timercount++;
+        if(timercount>10000) return -1;
+        usleep(1000);
+    }
+    return 0;
+}
+
+
 
