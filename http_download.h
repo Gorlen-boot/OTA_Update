@@ -22,8 +22,6 @@ public:
 
 private:
     //=====状态变量=====
-    bool bisFinished;   //下载是否完成
-    bool bisRunning;    //下载是否进行中
     bool HttpError;
     QFile *downloadFile;                //保存目标文件指针
     QUrl downloadUrl;                   //下载地址Url

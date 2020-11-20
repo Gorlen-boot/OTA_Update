@@ -433,17 +433,4 @@ int mainfunc::update_json(void)
     return res;
 }
 
-int mainfunc::waitTimeout(void)
-{
-    timercount=0;
-    while(!Global::DownloadOK)
-    {
-        timercount++;
-        if(timercount>10000) return -1;
-        usleep(1000);
-    }
-    return 0;
-}
-
-
 

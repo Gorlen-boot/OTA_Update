@@ -8,7 +8,6 @@ http_download::http_download()
 {
     downloadFile = nullptr;
     downloadReply = nullptr;
-    bisFinished = false;
     HttpError = false;
 }
 

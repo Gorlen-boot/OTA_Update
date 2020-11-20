@@ -31,11 +31,11 @@ public:
     int file_crc(QString file_path,QString remote_md5);
     int old_restore(void);
     int update_json(void);
-    int waitTimeout(void);
 
 private slots:
     void client_requst_respond(uint8_t res);
     void update_lcmres();
+
 private:
     int timercount;
     int poweron_flag=0;
